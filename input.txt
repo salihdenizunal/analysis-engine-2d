@@ -1,0 +1,70 @@
+##
+##	583 - Assignment 1 - Question 2
+##
+# Dimensions of coordinate system (2D = 2, 3D = 3)
+2
+
+# Number of nodal points:
+4
+
+# Number of degree of freedom at nodal points:
+3
+
+# Number of elements in the structure:
+3
+
+# Number of support points:
+2
+
+# Number of nodal points where loads are applied on the structure:
+0
+
+# Number of distributed loads on the elements:
+1
+
+# Number of point loads on the elements:
+0
+
+# Number of concentrated moments on the elements:
+0
+
+# Number of sets of material properties:
+1
+
+# coordinates of nodal points (x y (z if 3D) for each node):
+0 0 
+0 6 
+6 6 
+6 0 
+
+# A(m^2), I(m^4), E(MPa) for each material property set:
+9999999999999999 1 1
+
+# start node of element, finish node of element, material property set number:
+1 2 1
+2 3 1
+3 4 1
+
+# support id, restrain x, restrain y, restrain z (dof + 1 columns):
+1 1 1 1
+4 0 0 0
+
+# loaded joint id, x, y, z (dof + 1 columns):
+
+# distributed loaded element id, magnitude (local coordinate system):
+2 -5
+
+# point loaded element id, magnitude (local coordinate system):
+
+
+# point loaded element id, element load location from start node of the element (local coordinate system):
+
+
+# concentrated moment element id, magnitude (local coordinate system):
+
+
+# concentrated moment element id, element moment location from start node of the element (local coordinate system):
+
+
+
+

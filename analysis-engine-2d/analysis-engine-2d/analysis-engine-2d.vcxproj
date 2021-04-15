@@ -129,6 +129,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="elementClass.h" />
+    <ClInclude Include="membraneElement.h" />
     <ClInclude Include="inputLibrary.h" />
     <ClInclude Include="nodeClass.h" />
   </ItemGroup>

@@ -15,6 +15,7 @@
 #include "inputLibrary.h"
 #include "nodeClass.h"
 #include "elementClass.h"
+#include "membraneElement.h"
 
 using namespace std;
 using namespace Eigen;
@@ -28,13 +29,15 @@ namespace globalMatrices {
         @param k element stiffness matrix.
         @param K global striffnes matrix.
     */
-    int constructGlobalStiff(int numDof, MatrixXd elementGlobalDof, MatrixXd k, MatrixXd& K) {
+    int constructGlobalStiff(int numDof, int elemType, MatrixXd elementGlobalDof, MatrixXd k, MatrixXd& K) {
 
         int p, q;
+		//cout << "elementGlobalDof:\n" << elementGlobalDof << endl;
+		//cout << "element stiffness:\n" << k << endl;
 
-        for (p = 0; p < numDof * 2; p++) {
+        for (p = 0; p < numDof * elemType*2; p++) {
 
-            for (q = 0; q < numDof * 2; q++) {
+            for (q = 0; q < numDof * elemType*2; q++) {
 
                 if (elementGlobalDof(p) != 0 && elementGlobalDof(q) != 0) {
 
@@ -83,6 +86,7 @@ int main() {
     int inputIndex = 0;
 
     int numDimension = inputVector[inputIndex++];
+    int elementType = inputVector[inputIndex++];
     int numNode = inputVector[inputIndex++];
     int numDof = inputVector[inputIndex++];
     int numElem = inputVector[inputIndex++];
@@ -92,6 +96,8 @@ int main() {
     int numPointLoad = inputVector[inputIndex++];
     int numConcMoment = inputVector[inputIndex++];
     int numMaterialProp = inputVector[inputIndex++];
+	int xMeshSize = inputVector[inputIndex++];
+	int yMeshSize = inputVector[inputIndex++];
 
 
     // create the matrices from input file, send current input index, number of rows, number of columns, matrix and input vector using "inputLibrary.h"
@@ -99,18 +105,22 @@ int main() {
     // coordinates
     MatrixXd XY;
     createInputMatrix(inputIndex, numNode, numDimension, XY, inputVector);
+	//cout << "XY:\n" << XY << endl;
 
     // material properties
     MatrixXd M;
     createInputMatrix(inputIndex, numMaterialProp, 3, M, inputVector);
+	//cout << "M:\n" << M << endl;
 
     // connectivity
     MatrixXd C;
-    createInputMatrix(inputIndex, numElem, 3, C, inputVector);
+    createInputMatrix(inputIndex, numElem, elementType*2 + 1, C, inputVector);
+	//cout << "C:\n" << C << endl;
 
     // supports
     MatrixXd S;
     createInputMatrix(inputIndex, numSupport, numDof + 1, S, inputVector);
+	//cout << "S:\n" << S << endl;
 
     // loads
     MatrixXd L;
@@ -135,6 +145,66 @@ int main() {
     // concentrated moment location
     MatrixXd locationConcMoment;
     createInputMatrix(inputIndex, numConcMoment, 2, locationConcMoment, inputVector);
+
+
+
+	// PLATE MESH
+	if (elementType == 2) {
+		int xDivision = xMeshSize - 1;
+		int yDivision = yMeshSize - 1;
+
+		numElem = numElem * xMeshSize;
+		numNode = 2 * numElem + 2;
+		numNode = numNode + (numElem + 1) * yDivision;
+		numElem = numElem * yMeshSize;
+
+		double xIncrement = (XY(1, 0) - XY(0, 0)) / xMeshSize;
+		double yIncrement = (XY(2, 1) - XY(1, 1)) / yMeshSize;
+		
+		double xStart = XY(0, 0);
+		double yStart = XY(0, 1);
+
+		XY.resize(numNode, 2);
+		XY(0, 0) = xStart;
+		XY(0, 1) = yStart;
+
+		int counter = 0;
+		for (i = 0; i < xMeshSize + 1 ; i++) {
+			for (j = 0; j < yMeshSize + 1; j++) {
+				XY(counter, 0) = XY(0, 0) + xIncrement * i;
+				XY(counter, 1) = XY(0, 1) + yIncrement * j;
+				counter++;
+			}
+		}
+		//cout <<endl << XY << endl;
+		
+		int matType = C(0, 4);
+		C.resize(numElem, elementType * 2 + 1);
+
+		counter = 0;
+		for (i = 0; i < xMeshSize; i++) {
+			for (j = 0; j < yMeshSize; j++) {
+				C(counter, 0) = (yMeshSize + 1 )* i + 1 + j;
+				C(counter, 1) = C(counter, 0) + yMeshSize + 1;
+				C(counter, 2) = C(counter, 1) + 1;
+				C(counter, 3) = C(counter, 0) + 1;
+				C(counter, 4) = matType;
+				counter++;
+			}
+		}
+		//cout << endl << C << endl;
+
+	}
+
+
+
+
+
+
+
+
+
+
 
 
     // equation numbers
@@ -186,97 +256,180 @@ int main() {
     }
 
     int numEq = counter - 1;  // number of equations
+	
+	//cout << "E:\n" << E << endl;
+	cout << "Number of Eqn:\n" << numEq << endl;
 
 
     // elements
+	if (elementType == 1) {
 
-    //Element element[numElem];
-    vector <Element> elementVector;
+		//Element element[numElem];
+		vector <Element> elementVector;
 
-    for (i = 0; i < numElem; i++) {
+		for (i = 0; i < numElem; i++) {
 
-        Element element;
+			Element element;
 
-        element.getMaterialType(i, C, M);
-        element.getCoordinates(i, XY, C);
-        element.getkPrime(numDof);
-        element.getRotation(numDof);
-        element.getStiffnes();
-        element.getGlobalDof(numDof, E);
+			element.getMaterialType(i, C, M);
+			element.getCoordinates(i, XY, C);
+			element.getkPrime(numDof);
+			element.getRotation(numDof);
+			element.getStiffnes();
+			element.getGlobalDof(numDof, E);
 
-        element.getFEofConcMoment(numDof, i, numConcMoment, concMoment, locationConcMoment);
-        element.getFEofPointLoad(numDof, i, numPointLoad, pointLoad, locationPointLoad);
-        element.getFEofDistLoad(numDof, i, numDistLoad, distLoad);
+			element.getFEofConcMoment(numDof, i, numConcMoment, concMoment, locationConcMoment);
+			element.getFEofPointLoad(numDof, i, numPointLoad, pointLoad, locationPointLoad);
+			element.getFEofDistLoad(numDof, i, numDistLoad, distLoad);
 
-        element.getGlobalFE(numEq, numDof);
+			element.getGlobalFE(numEq, numDof);
 
-        elementVector.push_back(element);
-    }
-
-
-
-
-    // global stiffness matrix
-
-    MatrixXd K;
-    K = MatrixXd::Constant(numEq, numEq, 0);
-
-    for (i = 0; i < numElem; i++) {
-
-        globalMatrices::constructGlobalStiff(numDof, elementVector[i].globalDof, elementVector[i].k, K);
-    }
+			elementVector.push_back(element);
+		}
 
 
-    // global load vector
+		// global stiffness matrix
 
-    VectorXd F;
-    F = MatrixXd::Constant(numEq, 1, 0);
+		MatrixXd K;
+		K = MatrixXd::Constant(numEq, numEq, 0);
 
-    //Node loadJoint[numLoadJoint];
-    vector <Node> loadJointVector;
+		for (i = 0; i < numElem; i++) {
 
-    for (i = 0; i < numLoadJoint; i++) {
-        
-        Node loadJoint;
+			globalMatrices::constructGlobalStiff(numDof, elementType, elementVector[i].globalDof, elementVector[i].k, K);
+		}
 
-        loadJoint.getID(i, L);
-        loadJoint.getIndex();
-        loadJoint.getGlobalDof(numDof, E);
+		// global load vector
 
-        loadJointVector.push_back(loadJoint);
+		VectorXd F;
+		F = MatrixXd::Constant(numEq, 1, 0);
 
-        globalMatrices::constructGlobalLoad(i, numDof, numLoadJoint, F, L, loadJointVector[i].globalDof);
-    }
+		//Node loadJoint[numLoadJoint];
+		vector <Node> loadJointVector;
+
+		for (i = 0; i < numLoadJoint; i++) {
+
+			Node loadJoint;
+
+			loadJoint.getID(i, L);
+			loadJoint.getIndex();
+			loadJoint.getGlobalDof(numDof, E);
+
+			loadJointVector.push_back(loadJoint);
+
+			globalMatrices::constructGlobalLoad(i, numDof, numLoadJoint, F, L, loadJointVector[i].globalDof);
+		}
+
+		for (i = 0; i < numElem; i++) {
+
+			F -= elementVector[i].globalFixedEndForces;
+
+		}
+
+		// structural displacements
+
+		VectorXd D;
+		D = K.colPivHouseholderQr().solve(F);
+
+	}
 
 
-    for (i = 0; i < numElem; i++) {
+	else if (elementType == 2) {
 
-        F -= elementVector[i].globalFixedEndForces;
+		vector <MembraneElement> elementVector;
 
-    }
+		for (i = 0; i < numElem; i++) {
+
+			MembraneElement membrane;
+			membrane.getMaterialType(i, C, M);
+			membrane.getCoordinates(i, XY, C);
+			membrane.getkPrime(numDof);
+			membrane.getRotation(numDof);
+			membrane.getStiffnes();
+			membrane.getGlobalDof(numDof, E);
+
+			elementVector.push_back(membrane);
+		}
+		
+		// global stiffness matrix
+
+		MatrixXd K;
+		K = MatrixXd::Constant(numEq, numEq, 0);
+
+		for (i = 0; i < numElem; i++) {
+
+			globalMatrices::constructGlobalStiff(numDof, elementType, elementVector[i].globalDof, elementVector[i].k, K);
+		}
+
+		//cout << "K:\n" << K << endl;
 
 
+		// global load vector
 
-    // structural displacements
+		VectorXd F;
+		F = MatrixXd::Constant(numEq, 1, 0);
 
-    VectorXd D;
-    D = K.colPivHouseholderQr().solve(F);
+		//Node loadJoint[numLoadJoint];
+		vector <Node> loadJointVector;
+
+		for (i = 0; i < numLoadJoint; i++) {
+
+			Node loadJoint;
+
+			loadJoint.getID(i, L);
+			loadJoint.getIndex();
+			loadJoint.getGlobalDof(numDof, E);
+
+			loadJointVector.push_back(loadJoint);
+			//cout << "L:\n" << L << endl;
+			globalMatrices::constructGlobalLoad(i, numDof, numLoadJoint, F, L, loadJointVector[i].globalDof);
+			//cout << "F:\n" << F << endl;
+
+		}
+
+		// structural displacements
+
+		VectorXd D;
+		D = K.colPivHouseholderQr().solve(F);
+		cout << "D:\n" << D << endl;
+
+		VectorXd displacementField;
+		displacementField.resize(xMeshSize + 1);
+		displacementField(0) = 0.0;
+		for (i = 0; i < xMeshSize; i++) {
+			auto nodeId = (yMeshSize + 1)*i + 1;
+
+			displacementField(i+1) = D(2*nodeId-1);
+			cout << "Displacement Field:\n" << displacementField << endl;
+		}
+
+	}
+
 
 
     // getting the output file
 
     ofstream outputFile;
     outputFile.open("output.txt");
-    outputFile << "Global Stiffness Matrix:\n" << K << endl << "Global Force Vector:\n" << F << endl << "Structural Displacements:\n" << D << endl;
+    //outputFile << "Global Stiffness Matrix:\n" << K << endl << "Global Force Vector:\n" << F << endl << "Structural Displacements:\n" << D << endl;
 
+	outputFile << "XY:\n" << XY << endl << "M:\n" <<  M << endl << "C:\n" << C << endl << "S:\n" << S << endl << "L:\n" << L << endl << "E:\n" << E << endl;
 
     // member end forces
 
     for (i = 0; i < numElem; i++) {
 
-        elementVector[i].getEndForces(numDof, D);
+  //      elementVector[i].getEndForces(numDof, D);
 
-        outputFile << i + 1 << ". member end forces in local coordinates:\n" << elementVector[i].f << endl;
+  //      outputFile << i + 1 << ". member end forces in local coordinates:\n" << elementVector[i].f << endl;
+
+
+		//outputFile << i + 1 << ". member stiffness local coordinates:\n" << elementVector[i].kPrime << endl;
+		//outputFile << i + 1 << ". member stiffness global coordinates:\n" << elementVector[i].k << endl;
+
+		//outputFile << i + 1 << ". member fixed end forces:\n" << elementVector[i].fixedEndForces << endl;
+		//outputFile << i + 1 << ". member dprime:\n" << elementVector[i].d << endl;
+		//outputFile << i + 1 << ". member R:\n" << elementVector[i].R << endl;
+
     }
 
 

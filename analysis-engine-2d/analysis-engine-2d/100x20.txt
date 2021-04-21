@@ -1,5 +1,5 @@
 ##
-##	583 - Assignment 5 - Question 2 - 20 x 5
+##	583 - Assignment 5 - Question 2 - 100 x 20
 ##
 
 # Dimensions of coordinate system (2D = 2, 3D = 3)
@@ -18,10 +18,10 @@
 1
 
 # Number of support points:
-6
+21
 
 # Number of nodal points where loads are applied on the structure:
-6
+21
 
 # Number of distributed loads on the elements:
 0
@@ -36,10 +36,10 @@
 1
 
 # MESH SIZE x:
-20
+100
 
 # MESH SIZE y:
-5
+20
 
 # coordinates of nodal points (x y (z if 3D) for each node):
 0 0 
@@ -60,16 +60,44 @@
 4	1	1
 5	1	1
 6	1	1
-
+7	1	1
+8	1	1
+9	1	1
+10	1	1
+11	1	1
+12	1	1
+13	1	1
+14	1	1
+15	1	1
+16	1	1
+17	1	1
+18	1	1
+19	1	1
+20	1	1
+21	1	1
 
 # loaded joint id, x, y, z (dof + 1 columns):
-126	0	-3.3333333
-125	0	-3.3333333
-124	0	-3.3333333
-123	0	-3.3333333
-122	0	-3.3333333
-121	0	-3.3333333
-
+2121	0	-0.9523810
+2120	0	-0.9523810
+2119	0	-0.9523810
+2118	0	-0.9523810
+2117	0	-0.9523810
+2116	0	-0.9523810
+2115	0	-0.9523810
+2114	0	-0.9523810
+2113	0	-0.9523810
+2112	0	-0.9523810
+2111	0	-0.9523810
+2110	0	-0.9523810
+2109	0	-0.9523810
+2108	0	-0.9523810
+2107	0	-0.9523810
+2106	0	-0.9523810
+2105	0	-0.9523810
+2104	0	-0.9523810
+2103	0	-0.9523810
+2102	0	-0.9523810
+2101	0	-0.9523810
 
 # distributed loaded element id, magnitude (local coordinate system):
 
